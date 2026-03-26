@@ -1,9 +1,5 @@
 name: Deploy Windows Function App
 
-permissions:
-  contents: read
-  id-token: write # Essential for fetching the OIDC token
-
 on:
   push:
     branches:
@@ -14,7 +10,9 @@ env:
   AZURE_FUNCTIONAPP_NAME: aiagentfaramvar   # update this
   AZURE_FUNCTIONAPP_PACKAGE_PATH: './AIAgentFunction'              # path to your function app project
   DOTNET_VERSION: '10.0.x'                          # match your function app runtime
-
+permissions:
+  id-token: write
+  contents: read
 jobs:
   build-and-deploy:
     runs-on: windows-latest  # Windows runner to match Windows Function App
