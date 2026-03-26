@@ -1,5 +1,9 @@
 name: Deploy Windows Function App
 
+permissions:
+  contents: read
+  id-token: write # Essential for fetching the OIDC token
+
 on:
   push:
     branches:
