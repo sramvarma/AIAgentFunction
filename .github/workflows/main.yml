@@ -1,0 +1,47 @@
+name: Deploy Windows Function App
+
+on:
+  push:
+    branches:
+      - master  # triggers on push to main branch
+  workflow_dispatch:  # allows manual trigger
+
+env:
+  AZURE_FUNCTIONAPP_NAME: aiagentfaramvar   # update this
+  AZURE_FUNCTIONAPP_PACKAGE_PATH: './AIAgentFunction'              # path to your function app project
+  DOTNET_VERSION: '10.0.x'                          # match your function app runtime
+
+jobs:
+  build-and-deploy:
+    runs-on: windows-latest  # Windows runner to match Windows Function App
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Setup .NET
+      - name: Setup .NET ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # 3. Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore
+
+      # 4. Build the project
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      # 5. Publish the project
+      - name: Publish
+        run: dotnet publish --configuration Release --no-build --output ./output
+
+      # 6. Deploy to Azure Function App
+      - name: Deploy to Azure Function App
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
+          package: ./output
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
