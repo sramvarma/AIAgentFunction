@@ -1,5 +1,10 @@
 name: Deploy Windows Function App
 
+permissions:
+  id-token: write
+  contents: read
+
+
 on:
   push:
     branches:
