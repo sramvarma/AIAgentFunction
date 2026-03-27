@@ -1,14 +1,30 @@
-using Microsoft.Azure.Functions.Worker;
+
+using Azure.AI.OpenAI;
+using Azure.Identity;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Hosting.AzureFunctions;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OpenAI.Chat;
+var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")
+    ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is not set.");
+var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") ?? "gpt-4o-mini";
 
-var builder = FunctionsApplication.CreateBuilder(args);
+// Set up an AI agent following the standard Microsoft Agent Framework pattern.
+// WARNING: DefaultAzureCredential is convenient for development but requires careful consideration in production.
+// In production, consider using a specific credential (e.g., ManagedIdentityCredential) to avoid
+// latency issues, unintended credential probing, and potential security risks from fallback mechanisms.
+AIAgent agent = new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
+    .GetChatClient(deploymentName)
+    .AsAIAgent(
+        instructions: "You are a helpful assistant hosted in Azure Functions.",
+        name: "AIAgentRamVarName");
 
-builder.ConfigureFunctionsWebApplication();
-
-builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
-
-builder.Build().Run();
+// Configure the function app to host the AI agent.
+// This will automatically generate HTTP API endpoints for the agent.
+using IHost app = FunctionsApplication
+    .CreateBuilder(args)
+    .ConfigureFunctionsWebApplication()
+    .ConfigureDurableAgents(options => options.AddAIAgent(agent, timeToLive: TimeSpan.FromHours(1)))
+    .Build();
+app.Run();
